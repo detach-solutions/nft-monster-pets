@@ -84,7 +84,7 @@ class Legs(ObjectInfos):
         self.__object_infos.fill("legs")
     
     def __create_random_specs(self):
-        amount = random.randint(2, 3)
+        amount = random.randint(3, 3)
         body_width = self.__object_infos.body_size["x"]
         
         MIN_SIZE_X_Y = 0.1
@@ -115,15 +115,15 @@ class Legs(ObjectInfos):
             "amount": {
                 2: {
                     "number": {
-                        1: (0, 0, 0),
-                        2: (x_spacing_factor, 0, 0)
+                        1: (bpy.context.scene.cursor.location.x, bpy.context.scene.cursor.location.y, bpy.context.scene.cursor.location.z),
+                        2: (bpy.context.scene.cursor.location.x + x_spacing_factor, bpy.context.scene.cursor.location.y, bpy.context.scene.cursor.location.z)
                     }
                 },
                 3: {
                     "number": {
-                        1: (0, 0, 0),
-                        2: (x_spacing_factor, 0, 0),
-                        3: (x_spacing_factor/2, y_spacing_factor, 0)
+                        1: (bpy.context.scene.cursor.location.x, bpy.context.scene.cursor.location.y, bpy.context.scene.cursor.location.z),
+                        2: (bpy.context.scene.cursor.location.x + x_spacing_factor, bpy.context.scene.cursor.location.y, bpy.context.scene.cursor.location.z),
+                        3: (bpy.context.scene.cursor.location.x + x_spacing_factor/2, bpy.context.scene.cursor.location.y + y_spacing_factor, bpy.context.scene.cursor.location.z)
                     }
                 }
             }
@@ -157,14 +157,23 @@ class Legs(ObjectInfos):
     def __centralize(self):
         FIRST_LEG_INDEX = 0
         SECOND_LEG_INDEX = 1
+        THIRD_LEG_INDEX = 2
         
         first_leg = self.__cylinders[FIRST_LEG_INDEX]
         second_leg = self.__cylinders[SECOND_LEG_INDEX]
         
-        center_x = (second_leg.location.x - first_leg.location.x) / 2
+        center_y = None
         
+        if len(self.__cylinders) > 2:
+            third_leg = self.__cylinders[THIRD_LEG_INDEX]
+            center_y = (first_leg.location.y - third_leg.location.y) / 2
+            
+        center_x = (second_leg.location.x - first_leg.location.x) / 2
+            
         for leg in self.__cylinders:
             leg.location.x -= center_x
+            if center_y is not None:
+                leg.location.y += center_y
             
             
         
