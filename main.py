@@ -83,71 +83,85 @@ class Legs(ObjectInfos):
         self.__object_infos.fill("legs")
     
     def __create_random_specs(self):
-        amount = random.randint(3, 3)
-        body_width = self.__object_infos.body_size["x"]
-        
-        MIN_SIZE_X_Y = 0.1
-        MAX_SIZE_GAP = 0.1
-        MAX_SIZE_X_Y = (body_width / 2) - MAX_SIZE_GAP
-        
-        size_x_y = random.uniform(MIN_SIZE_X_Y, MAX_SIZE_X_Y)
-        
-        MIN_SIZE_Z = 0.2
-        MAX_SIZE_Z = 0.8
-        
-        size_z = random.uniform(MIN_SIZE_Z, MAX_SIZE_Z)
-        
-        MIN_SPACING = size_x_y * 2
-        MAX_SPACING = body_width
-        x_spacing_factor = random.uniform(MIN_SPACING, MAX_SPACING)
+        def create_size_specs(body_width):
+            MIN_SIZE_X_Y = 0.1
+            MAX_SIZE_GAP = 0.1
+            MAX_SIZE_X_Y = (body_width / 2) - MAX_SIZE_GAP
+            
+            size_x_y = random.uniform(MIN_SIZE_X_Y, MAX_SIZE_X_Y)
+            
+            MIN_SIZE_Z = 0.2
+            MAX_SIZE_Z = 0.8
+            
+            size_z = random.uniform(MIN_SIZE_Z, MAX_SIZE_Z)
 
-        third_leg_position = random.choice(["front", "back"])
+            return size_x_y, size_z
         
-        if third_leg_position == "front":
-            y_spacing_factor = -x_spacing_factor
-        else:
-            y_spacing_factor = x_spacing_factor
-        
-        x_center = size_x_y
-        
-        map = {
-            "amount": {
-                2: {
-                    "number": {
-                        1: (bpy.context.scene.cursor.location.x, bpy.context.scene.cursor.location.y, bpy.context.scene.cursor.location.z),
-                        2: (bpy.context.scene.cursor.location.x + x_spacing_factor, bpy.context.scene.cursor.location.y, bpy.context.scene.cursor.location.z)
-                    }
-                },
-                3: {
-                    "number": {
-                        1: (bpy.context.scene.cursor.location.x, bpy.context.scene.cursor.location.y, bpy.context.scene.cursor.location.z),
-                        2: (bpy.context.scene.cursor.location.x + x_spacing_factor, bpy.context.scene.cursor.location.y, bpy.context.scene.cursor.location.z),
-                        3: (bpy.context.scene.cursor.location.x + x_spacing_factor/2, bpy.context.scene.cursor.location.y + y_spacing_factor, bpy.context.scene.cursor.location.z)
-                    }
-                }
+        def create_spacing_specs(body_width, size_x_y):
+            MIN_SPACING = size_x_y * 2
+            MAX_SPACING = body_width
+
+            cursor_location = bpy.context.scene.cursor.location
+            
+            x_spacing_factor = random.uniform(MIN_SPACING, MAX_SPACING)
+            x_spacing_factor = cursor_location.x + x_spacing_factor
+
+            third_leg_position = random.choice(["front", "back"])
+            
+            if third_leg_position == "front":
+                y_spacing_factor = -x_spacing_factor
+            else:
+                y_spacing_factor = x_spacing_factor
+            
+            y_spacing_factor = cursor_location.y + y_spacing_factor
+
+            return x_spacing_factor, y_spacing_factor
+
+        def create_position_map(MIN_LEGS_AMOUNT, MAX_LEGS_AMOUNT): 
+            x_spacing_factor, y_spacing_factor = create_spacing_specs(body_width, size_x_y)
+            cursor_location = bpy.context.scene.cursor.location
+
+            leg_coords = {
+                "first": (cursor_location.x, cursor_location.y, cursor_location.z),
+                "second": (x_spacing_factor, cursor_location.y, cursor_location.z),
+                "third": (x_spacing_factor / 2, y_spacing_factor, cursor_location.z)
             }
-        }
-        
-        self.random_specs = {
+       
+            position_map = {"amount": {}}
+            for leg_amount in range(MIN_LEGS_AMOUNT, MAX_LEGS_AMOUNT + 1):
+                position_map["amount"][leg_amount] = {}
+                for index, key in enumerate(leg_coords):
+                    position_map["amount"][leg_amount][index + 1] = leg_coords[key]
+               
+            return position_map
+
+        body_width = self.__object_infos.body_size["x"]
+        size_x_y, size_z = create_size_specs(body_width)
+        MIN_LEGS_AMOUNT = 2
+        MAX_LEGS_AMOUNT = 3
+        amount = random.randint(MIN_LEGS_AMOUNT, MAX_LEGS_AMOUNT)
+        position_map = create_position_map(MIN_LEGS_AMOUNT, MAX_LEGS_AMOUNT)
+
+        self.__random_specs = {
             "amount": amount,
             "size_x_y": size_x_y,
             "size_z": size_z,
-            "map": map
+            "position_map": position_map
         }
         
         
     def __create_cylinders(self):
-        amount = self.random_specs["amount"]
-        size_x_y = self.random_specs["size_x_y"]
-        size_z = self.random_specs["size_z"]
-        map = self.random_specs["map"]
+        amount = self.__random_specs["amount"]
+        size_x_y = self.__random_specs["size_x_y"]
+        size_z = self.__random_specs["size_z"]
+        position_map = self.__random_specs["position_map"]
         
         for index in range(amount):
             bpy.ops.mesh.primitive_cylinder_add()
             bpy.context.object.scale = (size_x_y, size_x_y, size_z)
             bpy.context.object.name = f"leg{index + 1}"
-            number = map["amount"][amount]["number"]
-            location = number[index + 1]
+            legs_location = position_map["amount"][amount]
+            location = legs_location[index + 1]
             leg = bpy.context.object
             leg.location = location
             self.__cylinders.append(leg)
