@@ -1,7 +1,39 @@
 import bpy
+import bmesh
 import random
 
+class Blender:
+    def apply_bevel(self, width, segments):
+        bpy.ops.object.modifier_add(type='BEVEL')
+        bpy.context.object.modifiers["Bevel"].width = width
+        bpy.context.object.modifiers["Bevel"].segments = segments
+    
+    def delete_face(self, face_index):
+        bpy.ops.object.mode_set(mode='EDIT')
+        mesh=bmesh.from_edit_mesh(bpy.context.object.data)
+        mesh.faces.ensure_lookup_table() 
+        
+        for face in mesh.faces:
+            face.select = False
+            
+        mesh.faces[face_index].select = True
+        bpy.ops.mesh.delete(type='FACE')
+        bpy.ops.object.mode_set(mode='OBJECT')
+        
+    def smooth_all(self): 
+        for obj in bpy.context.scene.objects:
+            obj.select_set(True)
+            bpy.ops.object.mode_set(mode='EDIT')
+            mesh = bmesh.from_edit_mesh(obj.data)
+            mesh.faces.ensure_lookup_table() 
+        
+            for face in mesh.faces:
+                face.smooth = True
+        
+            bpy.ops.object.mode_set(mode='OBJECT')
 
+            
+            
 class ObjectInfos:
     def __init__(self):
         self.infos = self.__create_infos()
@@ -32,15 +64,16 @@ class ObjectInfos:
     
 
 class Body():
-    def __init__(self, object_infos):
+    def __init__(self, object_infos, blender):
         self.__cube = None
         self.__random_specs = {}
         self.__object_infos = object_infos
+        self.__blender = blender
          
     def create(self):
         self.__create_random_specs()
         self.__create_cube()
-        self.__apply_bevel()
+        self.__blender.apply_bevel(0.5, 5)
         self.__object_infos.fill("body")
     
     def __create_random_specs(self):
@@ -55,11 +88,6 @@ class Body():
         bpy.context.object.scale = scale
         self.__cube = bpy.context.object
         
-    def __apply_bevel(self):
-        bpy.ops.object.modifier_add(type='BEVEL')
-        bpy.context.object.modifiers["Bevel"].width = 0.5
-        bpy.context.object.modifiers["Bevel"].segments = 5
-        
     def place_over_legs(self):
         legs_infos = self.__object_infos.legs_size
         legs_height = legs_infos["z"]
@@ -70,11 +98,12 @@ class Body():
 
 
 class Legs(ObjectInfos):
-    def __init__(self, object_infos):
+    def __init__(self, object_infos, blender):
         super().__init__()
         self.__cylinders = []
         self.__random_specs = {}
         self.__object_infos = object_infos
+        self.__blender = blender
         
     def create(self):
         self.__create_random_specs()
@@ -164,9 +193,13 @@ class Legs(ObjectInfos):
             location = legs_location[index + 1]
             leg = bpy.context.object
             leg.location = location
-            self.__cylinders.append(leg)
             
-        
+            TOP_FACE_INDEX = 30
+            self.__blender.delete_face(TOP_FACE_INDEX)
+            self.__blender.apply_bevel(0.1, 3)
+            self.__cylinders.append(leg)
+
+            
     def __centralize(self):
         FIRST_LEG_INDEX = 0
         SECOND_LEG_INDEX = 1
@@ -191,10 +224,14 @@ class Legs(ObjectInfos):
             
         
 object_infos = ObjectInfos()
-body = Body(object_infos)
+blender = Blender()
+
+body = Body(object_infos, blender)
 body.create()
 
-legs = Legs(object_infos)
+legs = Legs(object_infos, blender)
 legs.create()
 
 body.place_over_legs()
+
+blender.smooth_all()
