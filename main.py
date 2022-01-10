@@ -133,27 +133,30 @@ class Legs(ObjectInfos):
             cursor_location = bpy.context.scene.cursor.location
             
             x_spacing_factor = random.uniform(MIN_SPACING, MAX_SPACING)
-            x_spacing_factor = cursor_location.x + x_spacing_factor
-
-            third_leg_position = random.choice(["front", "back"])
+            y_spacing_factor = random.uniform(MIN_SPACING, MAX_SPACING)
             
-            if third_leg_position == "front":
-                y_spacing_factor = -x_spacing_factor
-            else:
-                y_spacing_factor = x_spacing_factor
-            
-            y_spacing_factor = cursor_location.y + y_spacing_factor
-
+            third_leg_location = random.choice(["FRONT", "BACK"])
+            if third_leg_location == "BACK":
+                y_spacing_factor = -y_spacing_factor
+                
             return x_spacing_factor, y_spacing_factor
 
         def create_position_map(MIN_LEGS_AMOUNT, MAX_LEGS_AMOUNT): 
             x_spacing_factor, y_spacing_factor = create_spacing_specs(body_width, size_x_y)
+            
             cursor_location = bpy.context.scene.cursor.location
+            cursor_x = cursor_location.x
+            cursor_y = cursor_location.y
+            cursor_z = cursor_location.z
+            
+            leg_x_spacing = cursor_x + x_spacing_factor
+            leg_x_center = cursor_x + x_spacing_factor / 2
+            leg_y_spacing = cursor_y + y_spacing_factor
 
             leg_coords = {
-                "first": (cursor_location.x, cursor_location.y, cursor_location.z),
-                "second": (x_spacing_factor, cursor_location.y, cursor_location.z),
-                "third": (x_spacing_factor / 2, y_spacing_factor, cursor_location.z)
+                "first": (cursor_x, cursor_y, cursor_z),
+                "second": (leg_x_spacing, cursor_y, cursor_z),
+                "third": (leg_x_center, leg_y_spacing, cursor_z)
             }
        
             position_map = {"amount": {}}
